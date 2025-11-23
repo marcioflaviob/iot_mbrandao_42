@@ -25,6 +25,7 @@ metadata:
   name: playground
   namespace: dev
 spec:
+  type: LoadBalancer
   selector:
     app: playground
   ports:
