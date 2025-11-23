@@ -1,0 +1,46 @@
+K3S_TOKEN = "k3s_token"
+
+Vagrant.configure(2) do |config|
+  config.vm.box = "generic/alpine319"
+
+  config.vm.provider "virtualbox" do |v|
+    v.memory = 1024
+    v.cpus = 2
+    v.gui = false
+  end
+
+  config.vm.define "mbrandaoS" do |s|
+    s.vm.hostname = "mbrandaoS"
+    s.vm.network "private_network", bridge: "eth1", ip: "192.168.56.110"
+    s.vm.provision "shell", inline: <<-SHELL
+      echo 'export PATH=$PATH:/usr/local/bin:/sbin' >> /home/vagrant/.profile
+      echo 'alias k="kubectl"' >> /home/vagrant/.profile 
+      source /home/vagrant/.profile
+
+      sudo apk update
+      sudo apk add eudev util-linux e2fsprogs e2fsprogs-extra xz iptables ip6tables
+
+      curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --node-ip 192.168.56.110" \
+        K3S_TOKEN="#{K3S_TOKEN}" \
+        K3S_KUBECONFIG_MODE="644" sh -s -
+    SHELL
+  end
+
+  config.vm.define "mbrandaoSW" do |sw|
+    sw.vm.hostname = "mbrandaoSW"
+      sw.vm.network "private_network", bridge: "eth1", ip: "192.168.56.111"
+      sw.vm.provision "shell", inline: <<-SHELL
+        echo 'export PATH=$PATH:/usr/local/bin:/sbin' >> /home/vagrant/.profile
+        echo 'alias k="kubectl"' >> /home/vagrant/.profile 
+        source /home/vagrant/.profile
+
+        sudo apk update
+        sudo apk add eudev util-linux e2fsprogs e2fsprogs-extra xz iptables ip6tables
+
+        curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="agent --node-ip 192.168.56.111" \
+          K3S_URL=https://192.168.56.110:6443 \
+          K3S_TOKEN="#{K3S_TOKEN}" \
+          K3S_KUBECONFIG_MODE="644" sh -s -
+    SHELL
+  end
+end
